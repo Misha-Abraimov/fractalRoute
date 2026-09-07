@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadRouteSourceObjects",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::${S3_BUCKET}/routes/*/original.gpx"
+    },
+    {
+      "Sid": "ConsumeRouteJobs",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage"
+      ],
+      "Resource": "arn:aws:sqs:${AWS_REGION}:${AWS_ACCOUNT_ID}:fractal-route-jobs"
+    }
+  ]
+}

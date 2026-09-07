@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: fractal_route
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "fractal_route"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    image: fractalroute-backend:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}@db:5432/fractal_route
+      AWS_REGION: ${AWS_REGION:-us-east-2}
+      FRACTAL_ROUTE_S3_BUCKET: ${FRACTAL_ROUTE_S3_BUCKET:?Set FRACTAL_ROUTE_S3_BUCKET in .env.docker}
+      FRACTAL_ROUTE_SQS_QUEUE_URL: ${FRACTAL_ROUTE_SQS_QUEUE_URL:?Set FRACTAL_ROUTE_SQS_QUEUE_URL in .env.docker}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    image: fractalroute-backend:local
+    command: ["python", "-m", "backend.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.docker}@db:5432/fractal_route
+      AWS_REGION: ${AWS_REGION:-us-east-2}
+      FRACTAL_ROUTE_S3_BUCKET: ${FRACTAL_ROUTE_S3_BUCKET:?Set FRACTAL_ROUTE_S3_BUCKET in .env.docker}
+      FRACTAL_ROUTE_SQS_QUEUE_URL: ${FRACTAL_ROUTE_SQS_QUEUE_URL:?Set FRACTAL_ROUTE_SQS_QUEUE_URL in .env.docker}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
+        VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN:-}
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

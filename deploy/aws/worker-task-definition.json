@@ -1,0 +1,56 @@
+{
+  "family": "fractal-route-worker",
+  "taskRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/fractal-route-worker-task-role",
+  "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}",
+      "essential": true,
+      "command": [
+        "python",
+        "-m",
+        "backend.worker"
+      ],
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "${AWS_REGION}"
+        },
+        {
+          "name": "FRACTAL_ROUTE_S3_BUCKET",
+          "value": "${S3_BUCKET}"
+        },
+        {
+          "name": "FRACTAL_ROUTE_SQS_QUEUE_URL",
+          "value": "${SQS_QUEUE_URL}"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:ssm:${AWS_REGION}:${AWS_ACCOUNT_ID}:parameter/fractal-route/database-url"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${CLOUDWATCH_LOG_GROUP}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "stopTimeout": 30
+    }
+  ]
+}

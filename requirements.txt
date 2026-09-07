@@ -1,0 +1,7 @@
+fastapi[standard]
+sqlalchemy
+psycopg[binary]
+boto3
+# Required only for boto3 to consume AWS CLI `aws login` profile credentials
+# during local development; ECS itself authenticates through the task role.
+botocore[crt]

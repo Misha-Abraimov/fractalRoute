@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node and frontend builds
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Environment and local credentials
+.env
+.env.*
+!.env.example
+!*.env.example
+!.env.docker.example
+frontend/.env.local
+
+# Resolved AWS deployment metadata
+deploy/aws/aws-resources.local.json
+deploy/aws/*.rendered.json
+
+# Local route data and generated analysis artifacts
+/*.gpx
+results/
+
+# Logs, editors, and operating-system files
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
