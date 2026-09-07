@@ -13,6 +13,7 @@ import argparse
 import csv
 import json
 import math
+import ntpath
 import statistics
 import sys
 import xml.etree.ElementTree as ET
@@ -655,7 +656,7 @@ def analyze_gpx_data(
             "percent_difference": 100.0 * (raw_length - reported_distance) / reported_distance,
         }
     summary: dict[str, object] = {
-        "source_name": Path(source_name).name if source_name else None,
+        "source_name": ntpath.basename(source_name) if source_name else None,
         "corrected_distance_m": corrected_distance,
         "corrected_distance_method": "corrected route distance",
         "method": {

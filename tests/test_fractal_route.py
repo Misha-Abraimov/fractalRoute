@@ -38,7 +38,7 @@ class CoordinateTests(unittest.TestCase):
         self.assertAlmostEqual(y, 0.0, places=6)
         self.assertAlmostEqual(z, expected_b, places=6)
 
-    def test_current_corrected_distance_is_raw_ecef_length(self):
+    def test_corrected_distance_policy_preserves_distance(self):
         self.assertEqual(calculate_corrected_distance(6341.897949), 6341.897949)
 
 
@@ -128,7 +128,7 @@ class ParserTests(unittest.TestCase):
 
 
 class ReusableAnalysisTests(unittest.TestCase):
-    def test_analysis_result_has_api_ready_summary_and_identity_correction(self):
+    def test_analysis_result_has_api_ready_summary_for_cross_platform_source_paths(self):
         points = [TrackPoint(0.0, index * 0.0001, 0.0) for index in range(10)]
         data = GPXData(
             segments=[points],
@@ -138,21 +138,35 @@ class ReusableAnalysisTests(unittest.TestCase):
             metadata_time=None,
             exercise_info={},
         )
-        result = analyze_gpx_data(
-            data,
-            AnalysisConfig(num_scales=3),
-            source_name=r"C:\\private\\deterministic.gpx",
-        )
+        for source_name in (
+            r"C:\private\deterministic.gpx",
+            "/private/deterministic.gpx",
+        ):
+            with self.subTest(source_name=source_name):
+                result = analyze_gpx_data(
+                    data,
+                    AnalysisConfig(num_scales=3),
+                    source_name=source_name,
+                )
 
-        self.assertIsInstance(result, AnalysisResult)
-        for key in ("corrected_distance_m", "raw_track", "measurements", "linear_fit", "gpx"):
-            self.assertIn(key, result.summary)
-        self.assertEqual(
-            result.summary["corrected_distance_m"],
-            result.summary["raw_track"]["ecef_polyline_length_m"],
-        )
-        self.assertEqual(result.summary["source_name"], "deterministic.gpx")
-        self.assertEqual(result.summary["measurements"], [asdict(item) for item in result.measurements])
+                self.assertIsInstance(result, AnalysisResult)
+                for key in (
+                    "corrected_distance_m",
+                    "raw_track",
+                    "measurements",
+                    "linear_fit",
+                    "gpx",
+                ):
+                    self.assertIn(key, result.summary)
+                self.assertEqual(
+                    result.summary["corrected_distance_m"],
+                    result.summary["raw_track"]["ecef_polyline_length_m"],
+                )
+                self.assertEqual(result.summary["source_name"], "deterministic.gpx")
+                self.assertEqual(
+                    result.summary["measurements"],
+                    [asdict(item) for item in result.measurements],
+                )
 
 
 if __name__ == "__main__":
