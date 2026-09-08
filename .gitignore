@@ -12,6 +12,7 @@ htmlcov/
 node_modules/
 frontend/node_modules/
 frontend/dist/
+.vercel/
 
 # Environment and local credentials
 .env

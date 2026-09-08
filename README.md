@@ -45,6 +45,14 @@ React + TypeScript + Mapbox GL
 PostgreSQL results + CloudWatch logs
 ```
 
+The optional public/demo deployment uses a separate stateless path:
+
+```text
+Vercel Vite frontend → Vercel FastAPI Function → fractal_route.py
+                         ↓
+        corrected result + route geometry → browser localStorage
+```
+
 The API commits each new route transaction before publishing its job ID to SQS.
 This ordering prevents a worker from receiving an ID before the corresponding
 database row is visible.
@@ -74,6 +82,7 @@ database row is visible.
 
 ```text
 fractalRoute/
+├── api/                 # Stateless Vercel FastAPI Function
 ├── backend/
 │   ├── app/             # FastAPI, persistence, schemas, and AWS adapters
 │   ├── schema_upgrade.py
@@ -143,7 +152,8 @@ npm run dev
 ```
 
 Set `VITE_MAPBOX_ACCESS_TOKEN` in `frontend/.env.local`; never commit the real
-token. The dashboard runs at `http://127.0.0.1:5173`.
+token. Set `VITE_APP_MODE=async` when using the regular database-backed backend
+described above. The dashboard runs at `http://127.0.0.1:5173`.
 
 ### Local worker
 
@@ -203,6 +213,64 @@ npm run build
 ```
 
 The same checks run on every push and pull request through GitHub Actions.
+
+## Public Vercel deployment
+
+The public/demo deployment uses two Vercel projects imported from the same
+GitHub repository, [`Misha-Abraimov/fractalRoute`](https://github.com/Misha-Abraimov/fractalRoute).
+It does not use the persistent AWS workflow: GPX bytes are analyzed in memory by
+the Python Function, the response contains the corrected distance and route
+geometry, and the browser keeps at most 20 processed results in `localStorage`.
+Original GPX contents are never placed in the browser archive or persisted by
+the public API. Uploads larger than 4 MiB are rejected in both the browser and
+the API.
+
+### 1. Create the API project
+
+In the Vercel dashboard, add a new project by importing
+`Misha-Abraimov/fractalRoute` and configure it as follows:
+
+- Project root directory: repository root (`.`)
+- Python version: read from `.python-version` (`3.12`)
+- FastAPI entry point: `api/index.py`, which exports `app`
+- Environment variable:
+  `ALLOWED_ORIGINS=https://<your-frontend-project>.vercel.app`
+
+Deploy the API project first and copy its generated HTTPS URL. No database,
+AWS, or static credential environment variables belong in this project.
+
+### 2. Create the frontend project
+
+Import the same GitHub repository into a second Vercel project and configure:
+
+- Project root directory: `frontend`
+- Framework preset: Vite
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variables:
+
+```dotenv
+VITE_APP_MODE=vercel
+VITE_API_BASE_URL=https://<your-api-project>.vercel.app
+VITE_MAPBOX_ACCESS_TOKEN=<your-public-mapbox-token>
+```
+
+`VITE_API_BASE_URL` must be the API project origin without a trailing path; the
+frontend appends `/api/routes/analyze`. Do not hard-code a Vercel hostname in
+source. If the frontend URL changes, update `ALLOWED_ORIGINS` on the API project
+to the exact new origin and redeploy the API configuration.
+
+### Deployment-mode behavior
+
+- `VITE_APP_MODE=vercel` uses synchronous `POST /api/routes/analyze`, displays
+  **Analyze Route**, performs no polling, and reads/writes only the capped local
+  browser archive.
+- Any other mode retains the existing persistent asynchronous API, database
+  archive, queue/status UI, and polling behavior used by local Docker and AWS.
+
+The stateless API also exposes `GET /api/health`. Production CORS origins are a
+comma-separated `ALLOWED_ORIGINS` value; localhost and `127.0.0.1` development
+origins remain supported, and wildcard CORS is not enabled.
 
 ## AWS deployment architecture
 

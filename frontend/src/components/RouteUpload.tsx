@@ -2,10 +2,11 @@ import { useId, useRef, useState, type FormEvent } from 'react'
 
 interface RouteUploadProps {
   isUploading: boolean
+  isDirectAnalysis: boolean
   onUpload: (file: File) => Promise<void>
 }
 
-export function RouteUpload({ isUploading, onUpload }: RouteUploadProps) {
+export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUploadProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -42,7 +43,7 @@ export function RouteUpload({ isUploading, onUpload }: RouteUploadProps) {
         onChange={(event) => setFile(event.target.files?.[0] ?? null)}
       />
       <button className="primary-button" type="submit" disabled={!file || isUploading}>
-        <span>{isUploading ? 'Uploading route…' : 'Upload & queue'}</span>
+        <span>{isUploading ? 'Analyzing route…' : isDirectAnalysis ? 'Analyze Route' : 'Upload & queue'}</span>
         <span aria-hidden="true">{isUploading ? '◌' : '→'}</span>
       </button>
     </form>

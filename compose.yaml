@@ -25,6 +25,7 @@ services:
       AWS_REGION: ${AWS_REGION:-us-east-2}
       FRACTAL_ROUTE_S3_BUCKET: ${FRACTAL_ROUTE_S3_BUCKET:?Set FRACTAL_ROUTE_S3_BUCKET in .env.docker}
       FRACTAL_ROUTE_SQS_QUEUE_URL: ${FRACTAL_ROUTE_SQS_QUEUE_URL:?Set FRACTAL_ROUTE_SQS_QUEUE_URL in .env.docker}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "8000:8000"
     depends_on:
@@ -65,6 +66,7 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
         VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN:-}
+        VITE_APP_MODE: ${VITE_APP_MODE:-async}
     ports:
       - "5173:80"
     depends_on:

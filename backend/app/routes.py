@@ -9,7 +9,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from fractal_route import AnalysisConfig, analyze_gpx_data, parse_gpx_stream
+from fractal_route import AnalysisConfig
+from backend.stateless import (
+    MAX_GPX_UPLOAD_BYTES,
+    MAX_GPX_UPLOAD_MESSAGE,
+    analyze_gpx_bytes,
+)
 
 from .aws import (
     AWSConfigurationError,
@@ -81,30 +86,31 @@ def _persist_submission_failure(
 )
 def analyze_route(file: UploadFile = File(...)) -> RouteAnalysisResponse:
     filename = _validated_upload_filename(file)
+    file.file.seek(0)
+    contents = file.file.read(MAX_GPX_UPLOAD_BYTES + 1)
+    if len(contents) > MAX_GPX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=MAX_GPX_UPLOAD_MESSAGE,
+        )
 
     try:
-        file.file.seek(0)
-        data = parse_gpx_stream(file.file)
-        result = analyze_gpx_data(data, AnalysisConfig(), source_name=filename)
+        analysis = analyze_gpx_bytes(contents, filename, AnalysisConfig())
     except ValueError as exc:
         raise HTTPException(
             status_code=422,
             detail=str(exc),
         ) from exc
 
-    summary = result.summary
-    gpx = summary["gpx"]
-    raw_track = summary["raw_track"]
-    linear_fit = summary["linear_fit"]
     return RouteAnalysisResponse(
-        filename=filename,
-        track_name=gpx["track_name"],
-        point_count=gpx["point_count"],
-        segment_count=gpx["segment_count"],
-        raw_3d_ecef_polyline_length_m=raw_track["ecef_polyline_length_m"],
-        corrected_distance_m=summary["corrected_distance_m"],
-        fractal_dimension=linear_fit["fractal_dimension"],
-        r_squared=linear_fit["r_squared"],
+        filename=analysis.filename,
+        track_name=analysis.track_name,
+        point_count=analysis.point_count,
+        segment_count=analysis.segment_count,
+        raw_3d_ecef_polyline_length_m=analysis.raw_3d_ecef_polyline_length_m,
+        corrected_distance_m=analysis.corrected_distance_m,
+        fractal_dimension=analysis.fractal_dimension,
+        r_squared=analysis.r_squared,
     )
 
 

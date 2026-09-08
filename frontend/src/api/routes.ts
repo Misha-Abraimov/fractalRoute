@@ -1,4 +1,4 @@
-import type { StoredRoute } from '../types/route'
+import type { DirectRouteAnalysis, StoredRoute } from '../types/route'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '')
 
@@ -42,6 +42,12 @@ export function uploadRoute(file: File): Promise<StoredRoute> {
   const formData = new FormData()
   formData.append('file', file)
   return request<StoredRoute>(routeUrl(), { method: 'POST', body: formData })
+}
+
+export function analyzeRoute(file: File): Promise<DirectRouteAnalysis> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request<DirectRouteAnalysis>(routeUrl('/analyze'), { method: 'POST', body: formData })
 }
 
 export function getRoutes(): Promise<StoredRoute[]> {

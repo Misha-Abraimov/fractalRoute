@@ -14,7 +14,6 @@ export interface StoredRoute {
   status: RouteStatus
   point_count: number | null
   segment_count: number | null
-  raw_3d_ecef_polyline_length_m: number | null
   corrected_distance_m: number | null
   fractal_dimension: number | null
   r_squared: number | null
@@ -22,4 +21,15 @@ export interface StoredRoute {
   error_message: string | null
   created_at: string
   completed_at: string | null
+}
+
+export interface DirectRouteAnalysis {
+  filename: string
+  track_name: string | null
+  point_count: number
+  segment_count: number
+  corrected_distance_m: number
+  fractal_dimension: number
+  r_squared: number
+  geometry: MultiLineStringGeometry
 }

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{.git/**,.venv/**,frontend/**,tests/**,test_*.py,deploy/**,results/**,backend/app/aws.py,backend/app/database.py,backend/app/main.py,backend/app/models.py,backend/app/routes.py,backend/app/schemas.py,backend/worker.py,backend/schema_upgrade.py,**/__pycache__/**,**/*.pyc,**/*.gpx,.env,.env.*,Dockerfile,compose.yaml}"
+    }
+  }
+}

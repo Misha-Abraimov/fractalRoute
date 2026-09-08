@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { getRoute, getRoutes, uploadRoute } from './api/routes'
+import { analyzeRoute, getRoute, getRoutes, uploadRoute } from './api/routes'
 import { RouteList } from './components/RouteList'
 import { RouteMap } from './components/RouteMap'
 import { RouteSummary } from './components/RouteSummary'
 import { RouteUpload } from './components/RouteUpload'
+import { isVercelMode, maxGpxUploadBytes, maxGpxUploadMessage } from './config'
+import { loadLocalRoutes, localRouteLimit, routeFromDirectAnalysis, saveLocalRoutes } from './localRoutes'
 import type { StoredRoute } from './types/route'
 import './App.css'
 
@@ -12,11 +14,12 @@ function messageFrom(error: unknown): string {
 }
 
 const pollingIntervalMilliseconds = 3000
+const initialRoutes = isVercelMode ? loadLocalRoutes() : []
 
 function App() {
-  const [routes, setRoutes] = useState<StoredRoute[]>([])
-  const [selectedRoute, setSelectedRoute] = useState<StoredRoute | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [routes, setRoutes] = useState<StoredRoute[]>(initialRoutes)
+  const [selectedRoute, setSelectedRoute] = useState<StoredRoute | null>(initialRoutes[0] ?? null)
+  const [isLoading, setIsLoading] = useState(!isVercelMode)
   const [isUploading, setIsUploading] = useState(false)
   const [isSelecting, setIsSelecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +27,8 @@ function App() {
   const selectedRouteStatus = selectedRoute?.status
 
   useEffect(() => {
+    if (isVercelMode) return
+
     let isActive = true
 
     async function loadRoutes() {
@@ -47,7 +52,8 @@ function App() {
 
   useEffect(() => {
     if (
-      !selectedRouteId
+      isVercelMode
+      || !selectedRouteId
       || (selectedRouteStatus !== 'queued' && selectedRouteStatus !== 'processing')
     ) return
     const routeId = selectedRouteId
@@ -79,9 +85,27 @@ function App() {
   }, [selectedRouteId, selectedRouteStatus])
 
   async function handleUpload(file: File) {
+    if (file.size > maxGpxUploadBytes) {
+      setError(maxGpxUploadMessage)
+      return
+    }
+
     setIsUploading(true)
     setError(null)
     try {
+      if (isVercelMode) {
+        const analysis = await analyzeRoute(file)
+        const createdRoute = routeFromDirectAnalysis(analysis)
+        const updatedRoutes = [
+          createdRoute,
+          ...routes.filter((route) => route.id !== createdRoute.id),
+        ].slice(0, localRouteLimit)
+        setRoutes(updatedRoutes)
+        saveLocalRoutes(updatedRoutes)
+        setSelectedRoute(createdRoute)
+        return
+      }
+
       const createdRoute = await uploadRoute(file)
       setRoutes((current) => [createdRoute, ...current.filter((route) => route.id !== createdRoute.id)])
       setSelectedRoute(createdRoute)
@@ -94,6 +118,11 @@ function App() {
 
   async function handleSelect(id: string) {
     if (id === selectedRoute?.id) return
+    if (isVercelMode) {
+      setSelectedRoute(routes.find((route) => route.id === id) ?? null)
+      return
+    }
+
     setIsSelecting(true)
     setError(null)
     try {
@@ -138,7 +167,11 @@ function App() {
 
         <div className="dashboard-grid">
           <aside className="dashboard-sidebar">
-            <RouteUpload isUploading={isUploading} onUpload={handleUpload} />
+            <RouteUpload
+              isUploading={isUploading}
+              isDirectAnalysis={isVercelMode}
+              onUpload={handleUpload}
+            />
             <RouteList
               routes={routes}
               selectedId={selectedRoute?.id ?? null}
