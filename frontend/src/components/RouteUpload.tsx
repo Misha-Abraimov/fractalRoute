@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type DragEvent, type FormEvent } from 'react'
 
 interface RouteUploadProps {
   isUploading: boolean
@@ -10,6 +10,13 @@ export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUp
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    setIsDragging(false)
+    setFile(event.dataTransfer.files[0] ?? null)
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -25,11 +32,18 @@ export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUp
         <span className="eyebrow">New analysis</span>
         <span className="step-number">01</span>
       </div>
-      <label className="file-picker" htmlFor={inputId}>
+      <label
+        className={`file-picker${isDragging ? ' is-dragging' : ''}`}
+        htmlFor={inputId}
+        onDragEnter={(event) => { event.preventDefault(); setIsDragging(true) }}
+        onDragOver={(event) => event.preventDefault()}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+      >
         <span className="file-picker-icon" aria-hidden="true">↗</span>
         <span>
-          <strong>{file ? file.name : 'Choose a GPX track'}</strong>
-          <small>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : '.gpx files only'}</small>
+          <strong>{file ? file.name : 'Drop a GPX route here'}</strong>
+          <small>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : 'or browse · 4 MiB maximum'}</small>
         </span>
         <span className="browse-label">Browse</span>
       </label>

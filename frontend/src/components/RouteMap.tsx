@@ -20,7 +20,14 @@ function fitRoute(map: MapboxMap, geometry: MultiLineStringGeometry) {
 
   const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
   coordinates.slice(1).forEach((coordinate) => bounds.extend(coordinate))
-  map.fitBounds(bounds, { padding: 54, duration: 700, maxZoom: 16 })
+  const viewportWidth = map.getContainer().clientWidth
+  const padding = viewportWidth > 1100
+    ? { top: 104, bottom: 72, left: 390, right: 370 }
+    : viewportWidth > 760
+      ? { top: 96, bottom: 64, left: 334, right: 320 }
+      : { top: 86, bottom: 230, left: 36, right: 36 }
+
+  map.fitBounds(bounds, { padding, duration: 700, maxZoom: 16 })
 }
 
 export function RouteMap({ route }: RouteMapProps) {
@@ -42,7 +49,11 @@ export function RouteMap({ route }: RouteMapProps) {
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
     mapRef.current = map
 
+    const resizeObserver = new ResizeObserver(() => map.resize())
+    resizeObserver.observe(containerRef.current)
+
     return () => {
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
     }
@@ -85,6 +96,18 @@ export function RouteMap({ route }: RouteMapProps) {
     return () => {
       map.off('load', updateRoute)
     }
+  }, [route])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const handleResize = () => {
+      map.resize()
+      if (route?.geometry) fitRoute(map, route.geometry)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [route])
 
   if (!token) {

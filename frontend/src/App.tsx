@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { analyzeRoute, getRoute, getRoutes, uploadRoute } from './api/routes'
+import { AppHeader } from './components/AppHeader'
 import { RouteList } from './components/RouteList'
 import { RouteMap } from './components/RouteMap'
 import { RouteSummary } from './components/RouteSummary'
@@ -23,6 +24,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false)
   const [isSelecting, setIsSelecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mobilePanel, setMobilePanel] = useState<'routes' | 'results'>('routes')
   const selectedRouteId = selectedRoute?.id
   const selectedRouteStatus = selectedRoute?.status
 
@@ -103,12 +105,14 @@ function App() {
         setRoutes(updatedRoutes)
         saveLocalRoutes(updatedRoutes)
         setSelectedRoute(createdRoute)
+        setMobilePanel('results')
         return
       }
 
       const createdRoute = await uploadRoute(file)
       setRoutes((current) => [createdRoute, ...current.filter((route) => route.id !== createdRoute.id)])
       setSelectedRoute(createdRoute)
+      setMobilePanel('results')
     } catch (uploadError) {
       setError(messageFrom(uploadError))
     } finally {
@@ -120,6 +124,7 @@ function App() {
     if (id === selectedRoute?.id) return
     if (isVercelMode) {
       setSelectedRoute(routes.find((route) => route.id === id) ?? null)
+      setMobilePanel('results')
       return
     }
 
@@ -129,6 +134,7 @@ function App() {
       const route = await getRoute(id)
       setSelectedRoute(route)
       setRoutes((current) => current.map((item) => item.id === route.id ? route : item))
+      setMobilePanel('results')
     } catch (selectError) {
       setError(messageFrom(selectError))
     } finally {
@@ -136,42 +142,41 @@ function App() {
     }
   }
 
+  const applicationStatus = error
+    ? 'Needs attention'
+    : isUploading
+      ? isVercelMode ? 'Analyzing route…' : 'Uploading route…'
+      : isSelecting
+        ? 'Loading route…'
+        : isLoading
+          ? 'Loading routes…'
+          : 'Ready'
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <a className="brand" href="#top" aria-label="Fractal Route home">
-          <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>Fractal<span>Route</span></span>
-        </a>
-        <div className="header-meta">
-          <span className={`system-status${error ? ' system-error' : ''}`}>
-            <i /> {isLoading ? 'Connecting to API' : error ? 'API unavailable' : 'Analysis system online'}
-          </span>
-          <span className="version">Richardson analysis v0.3</span>
+    <div className="app-shell" id="app">
+      <RouteMap route={selectedRoute} />
+      <AppHeader status={applicationStatus} hasError={error !== null} />
+
+      {error && (
+        <div className="global-error" role="alert">
+          <span><strong>Request failed.</strong> {error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="Dismiss error">×</button>
         </div>
-      </header>
+      )}
 
-      <main id="top">
-        <section className="intro-row">
-          <div>
-            <h1>Measure the route<br /><em>between the points.</em></h1>
-          </div>
-        </section>
-
-        {error && (
-          <div className="global-error" role="alert">
-            <span><strong>Request failed.</strong> {error}</span>
-            <button type="button" onClick={() => setError(null)} aria-label="Dismiss error">×</button>
-          </div>
-        )}
-
-        <div className="dashboard-grid">
-          <aside className="dashboard-sidebar">
+      <main className="dashboard-overlays">
+        <aside
+          className={`controls-stack${mobilePanel === 'routes' ? ' mobile-active' : ''}`}
+          id="routes-panel"
+        >
+          <div className="floating-panel upload-card">
             <RouteUpload
               isUploading={isUploading}
               isDirectAnalysis={isVercelMode}
               onUpload={handleUpload}
             />
+          </div>
+          <div className="floating-panel archive-card">
             <RouteList
               routes={routes}
               selectedId={selectedRoute?.id ?? null}
@@ -179,18 +184,37 @@ function App() {
               isSelecting={isSelecting}
               onSelect={handleSelect}
             />
-          </aside>
-          <div className="dashboard-main">
-            <RouteMap route={selectedRoute} />
-            <RouteSummary route={selectedRoute} />
           </div>
-        </div>
+        </aside>
+
+        <aside
+          className={`floating-panel results-panel${mobilePanel === 'results' ? ' mobile-active' : ''}`}
+          id="results-panel"
+        >
+          <RouteSummary route={selectedRoute} />
+        </aside>
       </main>
 
-      <footer>
-        <span>GPX trajectory → multi-scale analysis → corrected distance</span>
-        <span>Local analysis workspace</span>
-      </footer>
+      <nav className="mobile-dock" aria-label="Dashboard panels">
+        <button
+          type="button"
+          className={mobilePanel === 'routes' ? 'active' : ''}
+          aria-controls="routes-panel"
+          aria-expanded={mobilePanel === 'routes'}
+          onClick={() => setMobilePanel('routes')}
+        >
+          Routes
+        </button>
+        <button
+          type="button"
+          className={mobilePanel === 'results' ? 'active' : ''}
+          aria-controls="results-panel"
+          aria-expanded={mobilePanel === 'results'}
+          onClick={() => setMobilePanel('results')}
+        >
+          Results
+        </button>
+      </nav>
     </div>
   )
 }

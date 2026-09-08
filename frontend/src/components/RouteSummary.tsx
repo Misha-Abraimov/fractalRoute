@@ -21,9 +21,9 @@ export function RouteSummary({ route }: RouteSummaryProps) {
   if (!route) {
     return (
       <section className="summary-panel summary-empty" aria-live="polite">
-        <span className="eyebrow">Analysis output</span>
-        <h2>Select a saved route or upload a GPX file</h2>
-        <p>Distance and fractal measurements will appear here.</p>
+        <span className="eyebrow">Route analysis</span>
+        <h2>Upload a GPX route to view corrected-distance results.</h2>
+        <p>Distance, fractal dimension, and fit quality will appear here.</p>
       </section>
     )
   }
@@ -72,7 +72,6 @@ export function RouteSummary({ route }: RouteSummaryProps) {
       <div className="hero-metric">
         <span>Corrected distance</span>
         <strong>{formatDistance(route.corrected_distance_m)}</strong>
-        <small>Corrected route distance from the completed analysis</small>
       </div>
 
       <div className="metric-grid">
@@ -81,15 +80,19 @@ export function RouteSummary({ route }: RouteSummaryProps) {
           <strong>{formatMetric(route.fractal_dimension)}</strong>
         </div>
         <div className="metric-card">
-          <span>Fit quality R²</span>
+          <span>R² fit quality</span>
           <strong>{formatMetric(route.r_squared)}</strong>
         </div>
-        <div className="metric-card split-card">
-          <span><b>{route.point_count?.toLocaleString() ?? '—'}</b> points</span>
-          <span>
-            <b>{route.segment_count?.toLocaleString() ?? '—'}</b>{' '}
-            {route.segment_count === 1 ? 'segment' : 'segments'}
-          </span>
+        <div className="metric-card">
+          <span>Point count</span>
+          <strong>{route.point_count?.toLocaleString() ?? '—'}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Segment count</span>
+          <strong>
+            {route.segment_count?.toLocaleString() ?? '—'}{' '}
+            <small>{route.segment_count === 1 ? 'segment' : 'segments'}</small>
+          </strong>
         </div>
       </div>
     </section>
