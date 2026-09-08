@@ -43,7 +43,7 @@ export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUp
         <span className="file-picker-icon" aria-hidden="true">↗</span>
         <span>
           <strong>{file ? file.name : 'Drop a GPX route here'}</strong>
-          <small>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : 'or browse · 4 MiB maximum'}</small>
+          <small>{file ? `${(file.size / 1024).toFixed(1)} KB selected` : 'or browse · 4 MB maximum'}</small>
         </span>
         <span className="browse-label">Browse</span>
       </label>

@@ -11,7 +11,7 @@ from fractal_route import AnalysisConfig, analyze_gpx_data, parse_gpx_stream
 
 
 MAX_GPX_UPLOAD_BYTES = 4 * 1024 * 1024
-MAX_GPX_UPLOAD_MESSAGE = "GPX files must be 4 MiB or smaller."
+MAX_GPX_UPLOAD_MESSAGE = "GPX files must be 4 MB or smaller."
 
 
 @dataclass(frozen=True)

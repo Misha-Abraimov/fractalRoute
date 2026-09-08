@@ -113,7 +113,7 @@ class VercelAPITests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 413)
-        self.assertEqual(response.json()["detail"], "GPX files must be 4 MiB or smaller.")
+        self.assertEqual(response.json()["detail"], "GPX files must be 4 MB or smaller.")
 
     def test_allowed_origins_adds_configured_production_origins(self):
         with patch.dict(
