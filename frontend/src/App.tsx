@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { analyzeRoute, getRoute, getRoutes, uploadRoute } from './api/routes'
 import { AppHeader } from './components/AppHeader'
+import { HelpModal } from './components/HelpModal'
 import { RouteList } from './components/RouteList'
 import { RouteMap } from './components/RouteMap'
 import { RouteSummary } from './components/RouteSummary'
@@ -25,8 +26,11 @@ function App() {
   const [isSelecting, setIsSelecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mobilePanel, setMobilePanel] = useState<'routes' | 'results'>('routes')
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
   const selectedRouteId = selectedRoute?.id
   const selectedRouteStatus = selectedRoute?.status
+  const openHelp = useCallback(() => setIsHelpOpen(true), [])
+  const closeHelp = useCallback(() => setIsHelpOpen(false), [])
 
   useEffect(() => {
     if (isVercelMode) return
@@ -142,6 +146,22 @@ function App() {
     }
   }
 
+  async function handleSampleRoute() {
+    setError(null)
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}sample-route.gpx`)
+      if (!response.ok) throw new Error('The sample route could not be loaded.')
+      const file = new File(
+        [await response.blob()],
+        'sample-route.gpx',
+        { type: 'application/gpx+xml' },
+      )
+      await handleUpload(file)
+    } catch (sampleError) {
+      setError(messageFrom(sampleError))
+    }
+  }
+
   const applicationStatus = error
     ? 'Needs attention'
     : isUploading
@@ -174,6 +194,8 @@ function App() {
               isUploading={isUploading}
               isDirectAnalysis={isVercelMode}
               onUpload={handleUpload}
+              onTrySample={handleSampleRoute}
+              onOpenHelp={openHelp}
             />
           </div>
           <div className="floating-panel archive-card">
@@ -215,6 +237,12 @@ function App() {
           Results
         </button>
       </nav>
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        showLocalStorageNote={isVercelMode}
+        onClose={closeHelp}
+      />
     </div>
   )
 }

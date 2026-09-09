@@ -4,13 +4,22 @@ interface RouteUploadProps {
   isUploading: boolean
   isDirectAnalysis: boolean
   onUpload: (file: File) => Promise<void>
+  onTrySample: () => Promise<void>
+  onOpenHelp: () => void
 }
 
-export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUploadProps) {
+export function RouteUpload({
+  isUploading,
+  isDirectAnalysis,
+  onUpload,
+  onTrySample,
+  onOpenHelp,
+}: RouteUploadProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isLoadingSample, setIsLoadingSample] = useState(false)
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault()
@@ -24,6 +33,16 @@ export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUp
     await onUpload(file)
     setFile(null)
     if (inputRef.current) inputRef.current.value = ''
+  }
+
+  async function handleSample() {
+    if (isUploading || isLoadingSample) return
+    setIsLoadingSample(true)
+    try {
+      await onTrySample()
+    } finally {
+      setIsLoadingSample(false)
+    }
   }
 
   return (
@@ -60,6 +79,19 @@ export function RouteUpload({ isUploading, isDirectAnalysis, onUpload }: RouteUp
         <span>{isUploading ? 'Analyzing route…' : isDirectAnalysis ? 'Analyze Route' : 'Upload & queue'}</span>
         <span aria-hidden="true">{isUploading ? '◌' : '→'}</span>
       </button>
+      <div className="upload-help">
+        <span>Don&apos;t have a GPX file?</span>
+        <div className="upload-help-actions">
+          <button
+            type="button"
+            disabled={isUploading || isLoadingSample}
+            onClick={() => void handleSample()}
+          >
+            {isLoadingSample ? 'Loading sample…' : 'Try Sample Route'}
+          </button>
+          <button type="button" onClick={onOpenHelp}>How to get a GPX</button>
+        </div>
+      </div>
     </form>
   )
 }
