@@ -342,7 +342,7 @@
   background: rgba(255, 255, 255, .025);
   border: 1px solid var(--glass-line);
   border-radius: 8px;
-  font: 700 8px/1.2 var(--mono);
+  font: 700 9px/1.2 var(--mono);
   transition: color .16s ease, background .16s ease, border-color .16s ease;
 }
 
