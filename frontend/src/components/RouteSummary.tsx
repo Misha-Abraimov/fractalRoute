@@ -4,9 +4,13 @@ interface RouteSummaryProps {
   route: StoredRoute | null
 }
 
-function formatDistance(value: number | null): string {
+function formatMiles(value: number | null): string {
   if (value === null) return '—'
-  return `${(value / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })} km`
+  return `${(value / 1609.344).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`
+}
+
+function formatKilometers(value: number): string {
+  return `${(value / 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
 }
 
 function formatMetric(value: number | null, digits = 4): string {
@@ -70,8 +74,11 @@ export function RouteSummary({ route }: RouteSummaryProps) {
       {route.error_message && <div className="route-error">{route.error_message}</div>}
 
       <div className="hero-metric">
-        <span>Corrected distance</span>
-        <strong>{formatDistance(route.corrected_distance_m)}</strong>
+        <span>Corrected Distance</span>
+        <strong>{formatMiles(route.corrected_distance_m)}</strong>
+        {route.corrected_distance_m !== null && (
+          <small className="distance-equivalent">{formatKilometers(route.corrected_distance_m)}</small>
+        )}
       </div>
 
       <div className="metric-grid">
